@@ -694,7 +694,7 @@ function renderWatchedList() {
             </div>
           </div>
           <p class="text-sm text-gray-300 leading-relaxed bg-brand-dark/40 p-3 rounded-xl border border-brand-border/40 font-normal">
-            "${item.review || item.opinion || 'Tidak ada catatan ulasan.'}"
+            "${escapeHtml(item.review || item.opinion || 'Tidak ada catatan ulasan.')}"
           </p>
         </div>
       </div>

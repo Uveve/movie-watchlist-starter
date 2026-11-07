@@ -2,7 +2,7 @@ import { randomInt } from 'node:crypto';
 import { db } from '../database/connection.js';
 import { AppError } from '../errors/app-error.js';
 
-function serializeMovie(row) {
+export function serializeMovie(row) {
   return { ...row, genres: JSON.parse(row.genres), cast: JSON.parse(row.cast) };
 }
 

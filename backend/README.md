@@ -1,6 +1,6 @@
 # FilmLog Backend
 
-REST API untuk katalog film FilmLog, dibangun dengan Node.js, Express, dan SQLite. API menyediakan registrasi dan login pengguna, daftar film, pencarian judul atau sutradara, filter genre, pengacakan urutan, dan detail film.
+REST API untuk katalog film FilmLog, dibangun dengan Node.js, Express, dan SQLite. API menyediakan registrasi dan login pengguna, watchlist pribadi, riwayat tontonan dan ulasan, daftar film, pencarian judul atau sutradara, filter genre, pengacakan urutan, dan detail film.
 
 ## Prasyarat
 
@@ -71,11 +71,48 @@ Alamat API default adalah `http://localhost:8000/api`. Periksa proses server mel
 
 | Metode | Endpoint | Respons berhasil |
 | --- | --- | --- |
+| `GET` | `/api/watchlist` | `200` dengan array watchlist pengguna. |
+| `POST` | `/api/watchlist` | `201` dengan entri watchlist. |
+| `DELETE` | `/api/watchlist/:movieId` | `204` tanpa body. |
+| `GET` | `/api/watched` | `200` dengan array riwayat tontonan. |
+| `POST` | `/api/watched` | `201` dengan catatan tontonan. |
 | `POST` | `/api/auth/register` | `201` dengan profil pengguna. |
 | `POST` | `/api/auth/login` | `200` dengan token JWT dan profil pengguna. |
 | `GET` | `/api/health` | `200` dengan status proses HTTP. |
 | `GET` | `/api/movies` | `200` dengan array film. |
 | `GET` | `/api/movies/:id` | `200` dengan objek film. |
+
+### Watchlist dan riwayat tontonan
+
+Seluruh endpoint `/api/watchlist` dan `/api/watched` memerlukan header `Authorization: Bearer <JWT>`. Identitas pengguna diambil dari token yang sudah diverifikasi. Field identitas tambahan dalam body tidak menentukan pemilik data.
+
+`POST /api/watchlist` menerima ID film melalui body berikut.
+
+```json
+{
+  "movieId": 7
+}
+```
+
+Respons berhasil memiliki status `201` dan menyertakan `movie_id`, `created_at`, serta objek `movie`. Film yang sama dalam watchlist pengguna menghasilkan `409`. Pengguna lain dapat menyimpan film tersebut pada watchlist miliknya sendiri.
+
+`GET /api/watchlist` mengembalikan array entri milik pengguna, dengan entri terbaru di awal. `DELETE /api/watchlist/:movieId` menghapus entri milik pengguna dan mengembalikan `204` tanpa body. Entri yang tidak ditemukan dalam watchlist pengguna menghasilkan `404`.
+
+`POST /api/watched` mencatat tontonan dengan body berikut.
+
+```json
+{
+  "movieId": 7,
+  "rating": 5,
+  "review": "Akting dan musiknya sangat kuat."
+}
+```
+
+`rating` wajib berupa bilangan bulat 1–5. `review` wajib berupa teks sepanjang 1–2000 karakter setelah spasi di awal dan akhir dihapus. Karakter null ditolak. ID film harus berupa bilangan bulat positif yang tersedia dalam katalog.
+
+Respons berhasil memiliki status `201` dengan field `id`, `movie_id`, `rating`, `review`, `created_at`, dan `movie`. `GET /api/watched` mengembalikan array catatan pengguna, dengan catatan terbaru di awal.
+
+Setiap pencatatan tontonan membuat entri baru untuk mendukung menonton ulang. Rating pengguna tersimpan pada `rating` entri, sedangkan rating katalog tersedia pada `movie.rating`. Penghapusan dari watchlist dilakukan melalui endpoint DELETE tersendiri.
 
 ### Autentikasi
 
@@ -144,8 +181,8 @@ Error dikembalikan sebagai JSON dengan field `message`.
 | --- | --- |
 | `400` | ID atau parameter tidak valid, atau body JSON rusak. |
 | `401` | Kredensial atau token tidak valid. |
-| `409` | Email sudah terdaftar. |
-| `404` | Film atau endpoint tidak ditemukan. |
+| `409` | Email sudah terdaftar atau film sudah ada dalam watchlist pengguna. |
+| `404` | Film, entri watchlist pengguna, atau endpoint tidak ditemukan. |
 | `413` | Body request melebihi 16 KB. |
 | `500` | Kesalahan server yang tidak terduga. |
 
@@ -185,16 +222,24 @@ backend/
 │   ├── routes/
 │   │   ├── auth.routes.js
 │   │   ├── health.routes.js
-│   │   └── movies.routes.js
+│   │   ├── movies.routes.js
+│   │   ├── watchlist.routes.js
+│   │   └── watched.routes.js
 │   ├── controllers/
 │   │   ├── auth.controller.js
-│   │   └── movies.controller.js
+│   │   ├── movies.controller.js
+│   │   ├── watchlist.controller.js
+│   │   └── watched.controller.js
 │   ├── services/
 │   │   ├── auth.service.js
-│   │   └── movies.service.js
+│   │   ├── movies.service.js
+│   │   ├── watchlist.service.js
+│   │   └── watched.service.js
 │   ├── validators/
 │   │   ├── auth.schemas.js
-│   │   └── movies.schemas.js
+│   │   ├── movies.schemas.js
+│   │   ├── watchlist.schemas.js
+│   │   └── watched.schemas.js
 │   ├── errors/app-error.js
 │   ├── middleware/
 │   │   ├── authenticate.js
@@ -202,7 +247,9 @@ backend/
 │   │   └── error-handler.js
 │   ├── app.js
 │   └── server.js
-├── tests/auth.test.js
+├── tests/
+│   ├── auth.test.js
+│   └── watchlist-watched.test.js
 ├── .env.example
 ├── package.json
 ├── package-lock.json
@@ -224,6 +271,8 @@ API Base URL default mengikuti alamat server dengan akhiran `/api`. Jika sebelum
 Jalankan `npm test` dari folder `backend`.
 
 Tes integrasi menggunakan HTTP lokal, SQLite dalam memori, dan kunci JWT khusus pengujian. Cakupannya meliputi registrasi, hashing bcrypt, email duplikat termasuk request bersamaan, login, validasi input, JWT kedaluwarsa atau tidak valid, serta pengguna yang sudah dihapus. Route khusus di server pengujian memeriksa middleware autentikasi. Katalog dan health endpoint juga diperiksa untuk memastikan tetap dapat diakses.
+
+Pengujian watchlist dan ulasan mencakup proteksi seluruh endpoint, permintaan watchlist duplikat secara bersamaan, pemisahan data dua akun, ID film tidak valid, rating dan ulasan tidak valid, serta pencatatan tontonan ulang. Pengujian frontend memastikan markup dalam ulasan ditampilkan sebagai teks.
 
 ## Sumber
 

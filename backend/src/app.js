@@ -1,3 +1,5 @@
+import { watchlistRouter } from './routes/watchlist.routes.js';
+import { watchedRouter } from './routes/watched.routes.js';
 import { fileURLToPath } from 'node:url';
 import { authRouter } from './routes/auth.routes.js';
 import express from 'express';
@@ -16,6 +18,8 @@ app.use(express.json({ limit: '16kb' }));
 app.use('/api/health', healthRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/movies', moviesRouter);
+app.use('/api/watchlist', watchlistRouter);
+app.use('/api/watched', watchedRouter);
 
 const frontendDirectory = fileURLToPath(new URL('../../frontend/', import.meta.url));
 const seedFile = fileURLToPath(new URL('../../data/movies.json', import.meta.url));

@@ -1,6 +1,7 @@
 import { AppError } from '../errors/app-error.js';
 
 export function parseMovieId(value) {
+  if (typeof value === 'number' && Number.isSafeInteger(value) && value > 0) return value;
   if (typeof value !== 'string' || !/^[0-9]+$/.test(value)) {
     throw new AppError(400, 'ID film harus berupa bilangan bulat positif.');
   }
