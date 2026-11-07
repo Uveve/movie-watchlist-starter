@@ -1,5 +1,10 @@
 # FilmLog Backend
 
+## Aplikasi dan dokumentasi
+
+- [Aplikasi FilmLog](https://uveve.id/gdgoc/filmlog/)
+- [Dokumentasi API interaktif (Scalar)](https://uveve.id/gdgoc/filmlog/docs)
+
 REST API untuk katalog film FilmLog, dibangun dengan Node.js, Express, dan SQLite. API menyediakan registrasi dan login pengguna, watchlist pribadi, riwayat tontonan dan ulasan, daftar film, pencarian judul atau sutradara, filter genre, pengacakan urutan, dan detail film.
 
 ## Prasyarat

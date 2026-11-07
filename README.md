@@ -1,5 +1,10 @@
 # FilmLog — GDGoC Backend Recruitment Task Starter Pack
 
+## Aplikasi dan dokumentasi
+
+- [Aplikasi FilmLog](https://uveve.id/gdgoc/filmlog/)
+- [Dokumentasi API interaktif (Scalar)](https://uveve.id/gdgoc/filmlog/docs)
+
 Selamat datang di repositori penugasan backend **FilmLog (Movie Watchlist & Review Platform)**. Repositori ini menyediakan:
 1. **Initial Seed Database** (`data/movies.json` dan `data/seed.sql`) berisi 20 film kurasi awal dengan atribut lengkap.
 2. **Frontend Companion** (`frontend/`) bertema Letterboxd yang siap pakai untuk menguji endpoint backend Anda secara visual dan interaktif.
