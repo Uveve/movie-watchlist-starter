@@ -1,11 +1,10 @@
 # FilmLog Backend
 
-REST API untuk katalog film FilmLog, dibangun dengan Node.js, Express, dan SQLite. API menyediakan daftar film, pencarian judul atau sutradara, filter genre, pengacakan urutan, dan detail film.
+REST API untuk katalog film FilmLog, dibangun dengan Node.js, Express, dan SQLite. API menyediakan registrasi dan login pengguna, daftar film, pencarian judul atau sutradara, filter genre, pengacakan urutan, dan detail film.
 
 ## Prasyarat
 
 - Node.js 24 atau lebih baru beserta npm.
-- Python 3 jika menjalankan frontend melalui server statis pada contoh di bawah.
 
 ## Instalasi
 
@@ -28,11 +27,20 @@ Pada macOS atau Linux, gunakan `cp .env.example .env`. Jika `.env` sudah tersedi
 
 | Variabel | Default | Keterangan |
 | --- | --- | --- |
+| `JWT_SECRET` | Wajib diisi | Kunci rahasia acak untuk tanda tangan dan verifikasi JWT. |
 | `PORT` | `8000` | Port HTTP, antara 1 dan 65535. |
 | `CORS_ORIGIN` | `http://localhost:3000` | Origin frontend yang diizinkan. Pisahkan beberapa origin dengan koma. |
 | `DB_PATH` | `storage/filmlog.sqlite` | Lokasi database, relatif terhadap folder backend atau berupa path absolut. |
 
 File `.env` dan database lokal diabaikan oleh Git.
+
+Buat kunci acak JWT dengan perintah berikut, lalu salin hasilnya ke `JWT_SECRET` di `.env`.
+
+```cmd
+node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
+```
+
+Kunci harus memiliki minimal 32 byte. Mengganti kunci membuat token lama tidak valid.
 
 ## Migrasi dan seeding
 
@@ -63,9 +71,46 @@ Alamat API default adalah `http://localhost:8000/api`. Periksa proses server mel
 
 | Metode | Endpoint | Respons berhasil |
 | --- | --- | --- |
+| `POST` | `/api/auth/register` | `201` dengan profil pengguna. |
+| `POST` | `/api/auth/login` | `200` dengan token JWT dan profil pengguna. |
 | `GET` | `/api/health` | `200` dengan status proses HTTP. |
 | `GET` | `/api/movies` | `200` dengan array film. |
 | `GET` | `/api/movies/:id` | `200` dengan objek film. |
+
+### Autentikasi
+
+`POST /api/auth/register` menerima body berikut dan mengembalikan status `201` dengan objek `user` berisi `id`, `username`, dan `email`.
+
+```json
+{
+  "username": "alice",
+  "email": "alice@example.com",
+  "password": "contoh-password-kuat"
+}
+```
+
+Username wajib diisi dan maksimal 50 karakter. Email dinormalisasi ke huruf kecil dan harus unik. Password minimal 8 karakter dan maksimal 72 byte UTF-8. Spasi dalam password dipertahankan. Karakter Unicode dapat memakai lebih dari satu byte.
+
+`POST /api/auth/login` menerima `email` dan `password`, lalu mengembalikan status `200` dengan format berikut.
+
+```json
+{
+  "token": "<JWT>",
+  "user": {
+    "id": 1,
+    "username": "alice",
+    "email": "alice@example.com"
+  }
+}
+```
+
+Password disimpan sebagai hash bcrypt dengan cost 12 dan salt acak. Respons hanya menyertakan profil publik pengguna. JWT memakai HS256, berlaku satu jam, dan memuat ID pengguna dalam klaim `sub`. Middleware memverifikasi algoritma, tanda tangan, masa berlaku, issuer, audience, serta keberadaan pengguna di database.
+
+Untuk rute yang diproteksi middleware autentikasi, kirim header berikut.
+
+```http
+Authorization: Bearer <JWT>
+```
 
 ### Parameter katalog
 
@@ -98,6 +143,8 @@ Error dikembalikan sebagai JSON dengan field `message`.
 | Status | Kondisi |
 | --- | --- |
 | `400` | ID atau parameter tidak valid, atau body JSON rusak. |
+| `401` | Kredensial atau token tidak valid. |
+| `409` | Email sudah terdaftar. |
 | `404` | Film atau endpoint tidak ditemukan. |
 | `413` | Body request melebihi 16 KB. |
 | `500` | Kesalahan server yang tidak terduga. |
@@ -136,15 +183,26 @@ backend/
 │   │   ├── seed.js
 │   │   └── migrations/001_initial_schema.sql
 │   ├── routes/
+│   │   ├── auth.routes.js
 │   │   ├── health.routes.js
 │   │   └── movies.routes.js
-│   ├── controllers/movies.controller.js
-│   ├── services/movies.service.js
-│   ├── validators/movies.schemas.js
+│   ├── controllers/
+│   │   ├── auth.controller.js
+│   │   └── movies.controller.js
+│   ├── services/
+│   │   ├── auth.service.js
+│   │   └── movies.service.js
+│   ├── validators/
+│   │   ├── auth.schemas.js
+│   │   └── movies.schemas.js
 │   ├── errors/app-error.js
-│   ├── middleware/error-handler.js
+│   ├── middleware/
+│   │   ├── authenticate.js
+│   │   ├── validate.js
+│   │   └── error-handler.js
 │   ├── app.js
 │   └── server.js
+├── tests/auth.test.js
 ├── .env.example
 ├── package.json
 ├── package-lock.json
@@ -157,13 +215,15 @@ Route memetakan endpoint ke controller. Controller memvalidasi parameter, memang
 
 ## Frontend companion
 
-Jalankan backend, lalu buka terminal lain di folder utama repositori.
+Express menyajikan frontend dari folder `frontend/` pada origin yang sama dengan API. Jalankan `npm run dev` dari folder `backend`, lalu buka [FilmLog](http://localhost:8000/).
 
-```cmd
-python -m http.server 3000
-```
+API Base URL default mengikuti alamat server dengan akhiran `/api`. Jika sebelumnya sudah menyimpan URL melalui pengaturan frontend, sesuaikan nilainya dengan alamat backend yang sedang berjalan. Panel API Inspector menampilkan hasil request. Dataset fallback tersedia melalui `/data/movies.json`.
 
-Buka [frontend FilmLog](http://localhost:3000/frontend/) dan atur API Base URL menjadi `http://localhost:8000/api`. Panel API Inspector menampilkan hasil permintaan ke backend. Katalog juga dapat tampil dari dataset lokal ketika koneksi API gagal.
+## Pengujian
+
+Jalankan `npm test` dari folder `backend`.
+
+Tes integrasi menggunakan HTTP lokal, SQLite dalam memori, dan kunci JWT khusus pengujian. Cakupannya meliputi registrasi, hashing bcrypt, email duplikat termasuk request bersamaan, login, validasi input, JWT kedaluwarsa atau tidak valid, serta pengguna yang sudah dihapus. Route khusus di server pengujian memeriksa middleware autentikasi. Katalog dan health endpoint juga diperiksa untuk memastikan tetap dapat diakses.
 
 ## Sumber
 

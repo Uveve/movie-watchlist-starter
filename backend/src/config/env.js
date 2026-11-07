@@ -11,6 +11,7 @@ const backendDirectory = fileURLToPath(new URL('../../', import.meta.url));
 const databasePath = process.env.DB_PATH || 'storage/filmlog.sqlite';
 
 export const env = {
+  jwtSecret: process.env.JWT_SECRET,
   databasePath: databasePath === ':memory:' ? databasePath : resolve(backendDirectory, databasePath),
   port,
   corsOrigins: (process.env.CORS_ORIGIN || 'http://localhost:3000')

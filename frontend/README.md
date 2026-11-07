@@ -6,31 +6,22 @@ Frontend ini dibuat **Zero-Build & Standalone** (menggunakan Tailwind CSS CDN da
 
 ---
 
-## 🚀 Cara Menjalankan Frontend
+## Menjalankan frontend
 
-Pilih salah satu cara paling mudah:
+Frontend disajikan oleh Express bersama API. Dari folder utama repositori, jalankan perintah berikut.
 
-### Opsi 1: Menggunakan Python (Tersedia di hampir semua OS)
-```bash
-cd frontend
-python3 -m http.server 3000
-```
-Buka browser di: `http://localhost:3000`
-
-### Opsi 2: Menggunakan Node / npx
-```bash
-cd frontend
-npx serve .
+```cmd
+cd backend
+npm ci
+npm run dev
 ```
 
-### Opsi 3: VS Code Live Server
-Klik kanan `index.html` -> **Open with Live Server**.
+Ikuti konfigurasi awal di [README backend](../backend/README.md), lalu buka [FilmLog](http://localhost:8000/).
 
 ---
 
 ## ⚙️ Mengarahkan ke Backend Anda
-Secara default, frontend ini memanggil backend di:
-`http://localhost:8000/api`
+Secara default, frontend memanggil API pada origin halaman yang sedang dibuka dengan akhiran `/api`. Pengaturan URL yang tersimpan di browser tetap dipakai.
 
 Jika backend Anda berjalan di port lain (misal `:3000`, `:5000`, atau live URL Render):
 1. Buka web frontend di browser.

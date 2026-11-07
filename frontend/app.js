@@ -1,3 +1,9 @@
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, character => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[character]);
+}
+
 /**
  * FilmLog — Frontend Companion for GDGoC Backend Assignment
  * Lightweight, zero-build Single Page Application.
@@ -7,7 +13,7 @@
 // 1. STATE MANAGEMENT
 // ==========================================
 const state = {
-  apiBaseUrl: localStorage.getItem('filmlog_api_url') || 'http://localhost:8000/api',
+  apiBaseUrl: localStorage.getItem('filmlog_api_url') || window.location.origin + '/api',
   token: localStorage.getItem('filmlog_token') || null,
   user: JSON.parse(localStorage.getItem('filmlog_user') || 'null'),
   currentTab: 'discover',
@@ -817,9 +823,9 @@ function renderAuthUI() {
     container.innerHTML = `
       <div class="flex items-center space-x-2">
         <div class="w-8 h-8 rounded-full bg-brand-border flex items-center justify-center font-bold text-xs text-white uppercase border border-brand-border">
-          ${(state.user.username || state.user.email || 'U')[0]}
+          ${escapeHtml((state.user.username || state.user.email || 'U')[0])}
         </div>
-        <span class="text-xs font-semibold text-white hidden sm:inline">${state.user.username || state.user.email}</span>
+        <span class="text-xs font-semibold text-white hidden sm:inline">${escapeHtml(state.user.username || state.user.email)}</span>
         <button onclick="logout()" title="Logout" class="p-1.5 rounded-lg text-brand-muted hover:text-rose-400 hover:bg-rose-950/20 transition">
           <i data-lucide="log-out" class="w-4 h-4"></i>
         </button>

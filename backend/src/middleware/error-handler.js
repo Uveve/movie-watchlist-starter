@@ -18,6 +18,8 @@ export function errorHandler(error, request, response, next) {
     ? error.status
     : 500;
 
+  if (status === 401) response.setHeader('WWW-Authenticate', 'Bearer');
+
   if (status === 500) console.error(error);
 
   response.status(status).json({
