@@ -202,21 +202,62 @@ Detail error internal dicatat di terminal server. Respons `500` menggunakan pesa
 
 ```mermaid
 erDiagram
+    direction TB
+
     users ||--o{ watchlists : menyimpan
-    movies ||--o{ watchlists : disimpan
-    users ||--o{ reviews : menulis
-    movies ||--o{ reviews : diulas
+    movies ||--o{ watchlists : tercatat
+    users ||..o{ reviews : menulis
+    movies ||..o{ reviews : diulas
+
+    users {
+        INTEGER id PK
+        TEXT username
+        TEXT email UK "Unik tanpa membedakan huruf besar dan kecil"
+        TEXT password_hash
+        TEXT created_at
+    }
+
+    movies {
+        INTEGER id PK
+        TEXT title
+        INTEGER year
+        TEXT director
+        TEXT genres "Array JSON"
+        REAL rating "Rating katalog 0–10"
+        TEXT duration
+        TEXT synopsis
+        TEXT poster_url
+        TEXT cast "Array JSON"
+    }
+
+    watchlists {
+        INTEGER user_id PK, FK "Referensi users.id"
+        INTEGER movie_id PK, FK "Referensi movies.id"
+        TEXT created_at
+    }
+
+    reviews {
+        INTEGER id PK
+        INTEGER user_id FK "Referensi users.id"
+        INTEGER movie_id FK "Referensi movies.id"
+        INTEGER rating "Rating pengguna 1–5"
+        TEXT review "Ulasan 1–2000 karakter"
+        TEXT created_at
+    }
 ```
 
-| Tabel | Fungsi dan constraint |
+| Penanda | Arti |
 | --- | --- |
-| `users` | Profil dan hash password. Email unik tanpa membedakan huruf besar dan kecil. |
-| `movies` | Katalog film. Genre dan pemeran disimpan sebagai array JSON. |
-| `watchlists` | Relasi pengguna dan film dengan primary key gabungan `user_id` dan `movie_id`. |
-| `reviews` | Catatan tontonan dengan rating pengguna berupa bilangan bulat 1–5 dan ulasan sepanjang 1–2000 karakter. |
-| `schema_migrations` | Nama migrasi dan waktu penerapannya. |
+| 🔑 `PK` | Primary key yang mengidentifikasi satu baris. |
+| 🔗 `FK` | Foreign key yang mengacu ke primary key tabel lain. |
+| ◆ `UK` | Unique key yang menjaga nilai kolom tetap unik. |
+| `\|\|–o{` | Relasi satu ke nol atau banyak. Setiap entri memiliki tepat satu pengguna dan satu film. |
 
-Foreign key diaktifkan pada setiap koneksi. Penghapusan pengguna atau film menghapus relasi terkait melalui `ON DELETE CASCADE`. Indeks tersedia untuk relasi film dan riwayat pengguna. Setiap ulasan memiliki ID sendiri untuk mendukung pencatatan tontonan ulang.
+Pada `watchlists`, `user_id` dan `movie_id` bersama-sama membentuk primary key. Satu pengguna hanya bisa menyimpan film yang sama sekali. Pada `reviews`, setiap catatan mempunyai `id` sendiri, sehingga pengguna bisa mencatat tontonan ulang atas film yang sama.
+
+SQLite mengaktifkan foreign key pada setiap koneksi. Aturan `ON DELETE CASCADE` menghapus entri watchlist dan ulasan terkait saat pengguna atau film dihapus. Indeks mendukung pencarian berdasarkan film dan riwayat per pengguna. Tabel internal `schema_migrations` mencatat migrasi yang sudah diterapkan.
+
+Skema lengkap tersedia di [migrasi awal SQLite](src/database/migrations/001_initial_schema.sql).
 
 ## Struktur kode
 
