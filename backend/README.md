@@ -27,6 +27,8 @@ Pada macOS atau Linux, gunakan `cp .env.example .env`. Jika `.env` sudah tersedi
 
 | Variabel | Default | Keterangan |
 | --- | --- | --- |
+| `GEMINI_API_KEY` | Wajib untuk rekomendasi | Kunci Google AI Studio. |
+| `GEMINI_MODEL` | `gemini-2.5-flash` | Model Gemini untuk rekomendasi. |
 | `JWT_SECRET` | Wajib diisi | Kunci rahasia acak untuk tanda tangan dan verifikasi JWT. |
 | `PORT` | `8000` | Port HTTP, antara 1 dan 65535. |
 | `CORS_ORIGIN` | `http://localhost:3000` | Origin frontend yang diizinkan. Pisahkan beberapa origin dengan koma. |
@@ -76,11 +78,14 @@ Alamat API default adalah `http://localhost:8000/api`. Periksa proses server mel
 | `DELETE` | `/api/watchlist/:movieId` | `204` tanpa body. |
 | `GET` | `/api/watched` | `200` dengan array riwayat tontonan. |
 | `POST` | `/api/watched` | `201` dengan catatan tontonan. |
+| `POST` | `/api/movies/recommend` | `200` dengan ID film dan alasan rekomendasi. |
 | `POST` | `/api/auth/register` | `201` dengan profil pengguna. |
 | `POST` | `/api/auth/login` | `200` dengan token JWT dan profil pengguna. |
 | `GET` | `/api/health` | `200` dengan status proses HTTP. |
 | `GET` | `/api/movies` | `200` dengan array film. |
 | `GET` | `/api/movies/:id` | `200` dengan objek film. |
+
+Endpoint rekomendasi tersedia melalui POST /api/movies/recommend.
 
 ### Watchlist dan riwayat tontonan
 
@@ -141,7 +146,7 @@ Username wajib diisi dan maksimal 50 karakter. Email dinormalisasi ke huruf keci
 }
 ```
 
-Password disimpan sebagai hash bcrypt dengan cost 12 dan salt acak. Respons hanya menyertakan profil publik pengguna. JWT memakai HS256, berlaku satu jam, dan memuat ID pengguna dalam klaim `sub`. Middleware memverifikasi algoritma, tanda tangan, masa berlaku, issuer, audience, serta keberadaan pengguna di database.
+Password disimpan sebagai hash bcrypt dengan cost 12 dan salt acak. Respons hanya menyertakan profil publik pengguna. JWT memakai HS256, berlaku tujuh hari, dan memuat ID pengguna dalam klaim `sub`. Middleware memverifikasi algoritma, tanda tangan, masa berlaku, issuer, audience, serta keberadaan pengguna di database.
 
 Untuk rute yang diproteksi middleware autentikasi, kirim header berikut.
 
@@ -231,6 +236,7 @@ backend/
 │   │   ├── watchlist.controller.js
 │   │   └── watched.controller.js
 │   ├── services/
+│   │   ├── gemini.service.js
 │   │   ├── auth.service.js
 │   │   ├── movies.service.js
 │   │   ├── watchlist.service.js
@@ -249,7 +255,8 @@ backend/
 │   └── server.js
 ├── tests/
 │   ├── auth.test.js
-│   └── watchlist-watched.test.js
+│   ├── watchlist-watched.test.js
+│   └── recommendations.test.js
 ├── .env.example
 ├── package.json
 ├── package-lock.json
@@ -273,6 +280,20 @@ Jalankan `npm test` dari folder `backend`.
 Tes integrasi menggunakan HTTP lokal, SQLite dalam memori, dan kunci JWT khusus pengujian. Cakupannya meliputi registrasi, hashing bcrypt, email duplikat termasuk request bersamaan, login, validasi input, JWT kedaluwarsa atau tidak valid, serta pengguna yang sudah dihapus. Route khusus di server pengujian memeriksa middleware autentikasi. Katalog dan health endpoint juga diperiksa untuk memastikan tetap dapat diakses.
 
 Pengujian watchlist dan ulasan mencakup proteksi seluruh endpoint, permintaan watchlist duplikat secara bersamaan, pemisahan data dua akun, ID film tidak valid, rating dan ulasan tidak valid, serta pencatatan tontonan ulang. Pengujian frontend memastikan markup dalam ulasan ditampilkan sebagai teks.
+
+## Rekomendasi Gemini
+
+POST /api/movies/recommend menerima objek JSON dengan field prompt, berupa deskripsi film sepanjang 1–1000 karakter. Respons berhasil memiliki status 200 dengan movie_id dan reasoning.
+
+Isi GEMINI_API_KEY di .env menggunakan kunci dari Google AI Studio. GEMINI_MODEL memiliki default gemini-2.5-flash dan dapat disesuaikan dengan model yang tersedia pada akun.
+
+Backend mengirim judul, genre, sinopsis, dan rating katalog dari film database yang termasuk dataset awal. Instruksi model membatasi rekomendasi pada katalog tersebut, dan skema JSON membatasi pilihan ID. Backend memeriksa kembali ID serta alasan yang diterima. Permintaan rating terbaik atau terburuk diarahkan menggunakan rating katalog.
+
+Permintaan di luar kurasi film dari katalog menghasilkan status 422 dengan pesan tetap dari API. Teks yang dihasilkan model untuk permintaan tersebut tidak diteruskan.
+
+Kunci API disimpan di server. Permintaan memiliki batas waktu 15 detik. Konfigurasi kunci yang belum tersedia menghasilkan 503, batas penggunaan Gemini menghasilkan 429, respons layanan yang gagal atau tidak valid menghasilkan 502, dan timeout menghasilkan 504.
+
+Pengujian Gemini memakai respons simulasi untuk memeriksa ID di luar katalog, tipe data tidak valid, timeout, serta konfigurasi yang belum tersedia.
 
 ## Sumber
 

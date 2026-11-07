@@ -73,7 +73,7 @@ await test('Authentication API and guards', async t => {
     const claims = jwt.verify(login.token, process.env.JWT_SECRET, {
       algorithms: ['HS256'], issuer: 'filmlog-api', audience: 'filmlog'
     });
-    assert.equal(claims.exp - claims.iat, 3600);
+    assert.equal(claims.exp - claims.iat, 7 * 24 * 60 * 60);
     const wrong = await post('/api/auth/login', { ...account, password: 'wrong' }, 401);
     const absent = await post('/api/auth/login', { ...account, email: 'unknown@example.com' }, 401);
     assert.deepEqual(wrong, absent);

@@ -28,7 +28,7 @@ export async function login({ email, password }) {
   if (!user || !valid) throw new AppError(401, 'Email atau password salah.');
 
   const token = jwt.sign({}, env.jwtSecret, {
-    algorithm: 'HS256', subject: String(user.id), expiresIn: '1h',
+    algorithm: 'HS256', subject: String(user.id), expiresIn: '7d',
     issuer: 'filmlog-api', audience: 'filmlog'
   });
   return { token, user: { id: user.id, username: user.username, email: user.email } };

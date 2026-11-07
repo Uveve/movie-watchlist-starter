@@ -39,8 +39,10 @@ async function apiFetch(endpoint, options = {}) {
     ...(options.headers || {})
   };
 
-  if (state.token) {
-    headers['Authorization'] = `Bearer ${state.token}`;
+  const requestToken = state.token;
+  const privateEndpoint = /^[/]?(watchlist|watched)([/]|$)/.test(endpoint);
+  if (requestToken) {
+    headers['Authorization'] = `Bearer ${requestToken}`;
   }
 
   const startTime = performance.now();
@@ -71,6 +73,17 @@ async function apiFetch(endpoint, options = {}) {
       ok,
       duration: Math.round(performance.now() - startTime)
     });
+
+    if (privateEndpoint && requestToken && requestToken !== state.token) {
+      throw new Error('Sesi telah berubah.');
+    }
+
+    if (status === 401 && privateEndpoint && requestToken) {
+      const message = 'Sesi berakhir. Silakan login kembali.';
+      logout(message);
+      openAuthModal('login');
+      throw new Error(message);
+    }
 
     if (!ok) {
       const errorMsg = (typeof responseData === 'object' && (responseData.message || responseData.error))
@@ -791,7 +804,7 @@ function renderAiRecommendation(data) {
                 <i data-lucide="bot" class="w-3.5 h-3.5"></i> Alasan Rekomendasi (Gemini Analysis):
               </span>
               <p class="text-xs text-gray-200 leading-relaxed italic">
-                "${reasoning}"
+                "${escapeHtml(reasoning)}"
               </p>
             </div>
 
@@ -932,7 +945,7 @@ async function handleAuthSubmit(event) {
   }
 }
 
-function logout() {
+function logout(message = 'Anda telah keluar (Logged out)') {
   state.token = null;
   state.user = null;
   state.watchlist = [];
@@ -942,7 +955,7 @@ function logout() {
   renderAuthUI();
   applyMovieFilters();
   switchTab('discover');
-  showToast('Anda telah keluar (Logged out)', 'info');
+  showToast(message, 'info');
 }
 
 // ==========================================

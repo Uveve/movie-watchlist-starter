@@ -14,7 +14,7 @@ export function errorHandler(error, request, response, next) {
     return response.status(413).json({ message: 'Request terlalu besar.' });
   }
 
-  const status = Number.isInteger(error.status) && error.status >= 400 && error.status < 500
+  const status = Number.isInteger(error.status) && error.status >= 400 && error.status <= 599
     ? error.status
     : 500;
 
