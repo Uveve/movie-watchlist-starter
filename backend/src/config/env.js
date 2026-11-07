@@ -10,7 +10,13 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) {
 const backendDirectory = fileURLToPath(new URL('../../', import.meta.url));
 const databasePath = process.env.DB_PATH || 'storage/filmlog.sqlite';
 
+const registrationRateLimit = Number(process.env.REGISTER_RATE_LIMIT || 5);
+if (!Number.isSafeInteger(registrationRateLimit) || registrationRateLimit < 1) {
+  throw new Error('REGISTER_RATE_LIMIT harus berupa bilangan bulat positif.');
+}
+
 export const env = {
+  registrationRateLimit,
   jwtSecret: process.env.JWT_SECRET,
   databasePath: databasePath === ':memory:' ? databasePath : resolve(backendDirectory, databasePath),
   port,

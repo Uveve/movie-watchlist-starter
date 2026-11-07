@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 
 await test('Authentication API and guards', async t => {
   process.env.DB_PATH = ':memory:';
+  process.env.REGISTER_RATE_LIMIT = '100';
   process.env.JWT_SECRET = 'test-secret-'.repeat(5);
   const { app } = await import('../src/app.js');
   const { db } = await import('../src/database/connection.js');

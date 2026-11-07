@@ -273,6 +273,18 @@ Express menyajikan frontend dari folder `frontend/` pada origin yang sama dengan
 
 API Base URL default mengikuti alamat server dengan akhiran `/api`. Jika sebelumnya sudah menyimpan URL melalui pengaturan frontend, sesuaikan nilainya dengan alamat backend yang sedang berjalan. Panel API Inspector menampilkan hasil request. Dataset fallback tersedia melalui `/data/movies.json`.
 
+## Pembatasan request
+
+FilmLog menerapkan batas per IP yang terpisah untuk setiap endpoint berikut.
+
+| Endpoint | Batas default |
+| --- | --- |
+| POST /api/auth/login | 10 percobaan gagal dalam 15 menit. Login berhasil dikeluarkan dari hitungan. |
+| POST /api/auth/register | 5 request per jam. Atur REGISTER_RATE_LIMIT untuk mengubah jumlahnya. |
+| POST /api/movies/recommend | 5 request per menit. |
+
+Request yang melewati batas mendapat HTTP 429 dengan header Retry-After dalam detik. Request rekomendasi yang diblokir tidak diteruskan ke Gemini. Penghitung disimpan dalam memori tiap proses dan kembali kosong saat aplikasi dimulai ulang.
+
 ## Pengujian
 
 Jalankan `npm test` dari folder `backend`.
